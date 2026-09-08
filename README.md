@@ -4,7 +4,7 @@ INF5063 – Machine learning : applications (ESIEA 5A).
 Conception et évaluation d'un système de recommandation de films par filtrage collaboratif
 sur [The Movies Dataset](https://www.kaggle.com/datasets/rounakbanik/the-movies-dataset).
 
-Sujet : `TP systèmes de recommandation.pdf`. Travail : `TP_reco.ipynb`.
+Sujet : `Ressources/TP systèmes de recommandation.pdf`. Cours : `Ressources/Systèmes de recommandations (1).pdf`. Travail : `TP_reco.ipynb`.
 
 ## Installation
 
