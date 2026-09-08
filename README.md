@@ -8,7 +8,18 @@ Sujet : `Ressources/TP systèmes de recommandation.pdf`. Cours : `Ressources/Sys
 
 ## Installation
 
-Prérequis : [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
+Prérequis : [uv](https://docs.astral.sh/uv/), qui installe aussi Python tout seul si besoin.
+
+- **Windows** (PowerShell) :
+  ```powershell
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  ```
+  puis fermer et rouvrir le terminal. Vérifier avec `uv --version`.
+  Alternative si `winget` est disponible : `winget install --id=astral-sh.uv -e`.
+- **Linux / macOS** :
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
 
 ```bash
 git clone https://github.com/albanrouault/ESIEA_5A_INF5063_syst-de-reco.git
