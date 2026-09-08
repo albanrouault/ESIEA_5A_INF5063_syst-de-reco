@@ -19,15 +19,19 @@ uv run nbstripout --install        # à faire UNE FOIS par clone (voir ci-dessou
 
 ### Données
 
-Les données ne sont pas versionnées (900 Mo). Télécharger
-[The Movies Dataset](https://www.kaggle.com/datasets/rounakbanik/the-movies-dataset) sur Kaggle
-et décompresser l'archive dans `Ressources/dataset/`. Le notebook n'utilise que :
+Les trois fichiers utilisés par le TP sont **versionnés** dans `Ressources/dataset/` (37 Mo),
+rien à télécharger :
 
 ```
 Ressources/dataset/movies_metadata.csv
 Ressources/dataset/ratings_small.csv
 Ressources/dataset/links_small.csv
 ```
+
+Le reste de [The Movies Dataset](https://www.kaggle.com/datasets/rounakbanik/the-movies-dataset)
+(`ratings.csv`, `credits.csv`, `keywords.csv`, `links.csv`, 860 Mo) n'est pas versionné : GitHub
+refuse les fichiers de plus de 100 Mo. Ces fichiers sont ignorés par git, on peut les laisser dans
+le dossier sans risque.
 
 ### Lancer le notebook
 

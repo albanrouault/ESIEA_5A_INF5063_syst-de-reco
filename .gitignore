@@ -1,5 +1,9 @@
-# Données (900 Mo, à télécharger depuis Kaggle, voir README)
-Ressources/dataset/
+# Données : seuls les 3 fichiers utilisés par le TP sont versionnés (37 Mo).
+# Les autres dépassent la limite GitHub de 100 Mo par fichier (ratings.csv = 709 Mo).
+Ressources/dataset/*
+!Ressources/dataset/movies_metadata.csv
+!Ressources/dataset/ratings_small.csv
+!Ressources/dataset/links_small.csv
 Ressources/*.zip
 
 # Environnement Python
