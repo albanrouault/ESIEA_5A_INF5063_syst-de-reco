@@ -1,0 +1,20 @@
+[project]
+name = "tp-reco"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "ipykernel>=7.3.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.11.1",
+    "nbformat>=5.11.1",
+    "numpy>=2.5.3",
+    "pandas>=3.0.5",
+    "scikit-learn>=1.9.0",
+    "scipy>=1.18.1",
+]
+
+[dependency-groups]
+dev = [
+    "nbdime>=4.0.4",
+    "nbstripout>=0.9.1",
+]

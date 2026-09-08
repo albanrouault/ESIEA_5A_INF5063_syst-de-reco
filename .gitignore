@@ -1,0 +1,16 @@
+# Données (900 Mo, à télécharger depuis Kaggle, voir README)
+Ressources/dataset/
+Ressources/*.zip
+
+# Environnement Python
+.venv/
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Système / éditeurs
+.DS_Store
+.vscode/
+.idea/
