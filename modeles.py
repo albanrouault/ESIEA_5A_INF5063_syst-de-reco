@@ -1,0 +1,74 @@
+"""Modèles de filtrage collaboratif du TP."""
+
+import numpy as np
+import pandas as pd
+
+
+class RecoUserBased:
+    """Filtrage collaboratif user-based : similarité cosinus, k voisins, moyenne pondérée.
+
+    k           : nombre de voisins.
+    min_voisins : voisins ayant vu un film pour pouvoir le recommander (1 = pas de seuil).
+    centrer     : retirer à chaque utilisateur sa note moyenne avant de calculer les similarités
+                  (cosinus sur notes centrées = corrélation de Pearson). Exercice 4.
+    min_avis    : ne garder à l'entraînement que les utilisateurs ayant au moins min_avis avis
+                  (0 = tous). Exercice 4.
+    """
+
+    def __init__(self, k=30, min_voisins=1, centrer=False, min_avis=0):
+        self.k = k
+        self.min_voisins = min_voisins
+        self.centrer = centrer
+        self.min_avis = min_avis
+
+    def fit(self, train):
+        # Option : retirer les utilisateurs trop peu actifs
+        if self.min_avis:
+            n_avis = train.groupby("userId").size()
+            train = train[train["userId"].isin(n_avis[n_avis >= self.min_avis].index)]
+
+        # Matrice des avis (NaN si non noté) et note moyenne par utilisateur
+        self.R = train.pivot(index="userId", columns="movieId", values="rating")
+        self.moyenne = self.R.mean(axis=1)
+        self.moyenne_globale = train["rating"].mean()
+
+        # Notes brutes, ou centrées (note - moyenne de l'utilisateur) ; 0 dans les cases vides
+        self.X = self.R.sub(self.moyenne, axis=0) if self.centrer else self.R
+        X0 = self.X.fillna(0.0).to_numpy()
+
+        # Similarité cosinus entre tous les utilisateurs, en un produit matriciel
+        norme = np.linalg.norm(X0, axis=1, keepdims=True)
+        norme[norme == 0] = 1.0                    # utilisateur sans variation : similarité 0
+        sim = (X0 @ X0.T) / (norme @ norme.T)
+        np.fill_diagonal(sim, 0.0)                 # on n'est pas son propre voisin
+        sim = np.clip(sim, 0.0, None)              # les similarités négatives (centrage) ne servent pas
+        self.sim = pd.DataFrame(sim, index=self.R.index, columns=self.R.index)
+        return self
+
+    def niveau(self, user):
+        """Note moyenne de l'utilisateur (moyenne globale s'il est inconnu du modèle)."""
+        return self.moyenne.get(user, self.moyenne_globale)
+
+    def voisins(self, user):
+        """Les k utilisateurs les plus similaires, avec leur similarité."""
+        return self.sim.loc[user].nlargest(self.k)
+
+    def predire(self, user):
+        """Note prédite pour chaque film : moyenne des notes des voisins pondérée par leur similarité."""
+        if user not in self.R.index:               # utilisateur inconnu : moyenne globale partout
+            return pd.Series(self.moyenne_globale, index=self.R.columns)
+        v = self.voisins(user)
+        notes = self.X.loc[v.index]                                        # notes des voisins (brutes ou centrées)
+        poids = notes.notna().mul(v.to_numpy(), axis=0)                    # similarité si le voisin a vu le film, 0 sinon
+        pred = notes.fillna(0.0).mul(v.to_numpy(), axis=0).sum() / poids.sum()
+        if self.centrer:
+            pred = pred + self.moyenne[user]                               # on remet le niveau de l'utilisateur
+        return pred.fillna(self.moyenne[user]).clip(0.5, 5.0)              # aucun voisin ne l'a vu : moyenne de l'utilisateur
+
+    def recommander(self, user, n=10):
+        """Les n films non vus en train avec la meilleure note prédite."""
+        pred = self.predire(user)
+        vus = self.R.loc[user].notna()
+        n_voisins = self.R.loc[self.voisins(user).index].notna().sum()   # voisins ayant vu chaque film
+        top = pred[~vus & (n_voisins >= self.min_voisins)].nlargest(n)
+        return pd.DataFrame({"note prédite": top, "voisins": n_voisins[top.index]})
