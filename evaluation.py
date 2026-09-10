@@ -17,3 +17,34 @@ def rmse_mae(y_vrai, y_pred):
     """RMSE et MAE entre notes vraies et notes prédites."""
     erreur = np.asarray(y_vrai) - np.asarray(y_pred)
     return np.sqrt(np.mean(erreur ** 2)), np.mean(np.abs(erreur))
+
+
+def pertinents_test(test, seuil=4.0):
+    """Films aimés (note >= seuil) de chaque utilisateur dans le test : {userId: ensemble de movieId}."""
+    aimes = test[test["rating"] >= seuil]
+    return aimes.groupby("userId")["movieId"].apply(set).to_dict()
+
+
+def precision_rappel_ndcg(recommandes, pertinents, k=10):
+    """Précision, rappel et NDCG top k pour un utilisateur.
+
+    recommandes : movieId proposés, dans l'ordre ; pertinents : ensemble des movieId aimés cachés.
+    """
+    trouve = [film in pertinents for film in list(recommandes)[:k]]     # True si le film proposé est pertinent
+    n_trouves = sum(trouve)
+    precision = n_trouves / k
+    rappel = n_trouves / len(pertinents) if pertinents else 0.0
+    dcg = sum(1 / np.log2(pos + 2) for pos, ok in enumerate(trouve) if ok)   # gain décoté, position 0 = 1er
+    idcg = sum(1 / np.log2(pos + 2) for pos in range(min(len(pertinents), k)))  # meilleur classement possible
+    ndcg = dcg / idcg if idcg else 0.0
+    return precision, rappel, ndcg
+
+
+def evaluer_top_k(recommander, test, k=10, seuil=4.0):
+    """Précision, rappel et NDCG top k de chaque utilisateur du test (une ligne par utilisateur).
+
+    recommander(user, k) doit renvoyer les movieId proposés à user, dans l'ordre.
+    """
+    pertinents = pertinents_test(test, seuil)
+    lignes = {user: precision_rappel_ndcg(recommander(user, k), films, k) for user, films in pertinents.items()}
+    return pd.DataFrame.from_dict(lignes, orient="index", columns=[f"précision@{k}", f"rappel@{k}", f"NDCG@{k}"])
