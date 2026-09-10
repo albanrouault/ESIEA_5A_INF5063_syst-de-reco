@@ -7,12 +7,12 @@ import pandas as pd
 class RecoUserBased:
     """Filtrage collaboratif user-based : similarité cosinus, k voisins, moyenne pondérée.
 
-    k           : nombre de voisins.
+    k           : nombre de voisins (au plus ; seuls les voisins de similarité > 0 comptent).
     min_voisins : voisins ayant vu un film pour pouvoir le recommander (1 = pas de seuil).
-    centrer     : retirer à chaque utilisateur sa note moyenne avant de calculer les similarités
-                  (cosinus sur notes centrées = corrélation de Pearson). Exercice 4.
-    min_avis    : ne garder à l'entraînement que les utilisateurs ayant au moins min_avis avis
-                  (0 = tous). Exercice 4.
+    centrer     : retirer à chaque utilisateur sa note moyenne avant de calculer les similarités.
+                  Exercice 4.
+    min_avis    : seuls les utilisateurs ayant au moins min_avis avis peuvent servir de voisins
+                  (0 = tous). Tout le monde reste servi. Exercice 4.
     """
 
     def __init__(self, k=30, min_voisins=1, centrer=False, min_avis=0):
@@ -22,11 +22,6 @@ class RecoUserBased:
         self.min_avis = min_avis
 
     def fit(self, train):
-        # Option : retirer les utilisateurs trop peu actifs
-        if self.min_avis:
-            n_avis = train.groupby("userId").size()
-            train = train[train["userId"].isin(n_avis[n_avis >= self.min_avis].index)]
-
         # Matrice des avis (NaN si non noté) et note moyenne par utilisateur
         self.R = train.pivot(index="userId", columns="movieId", values="rating")
         self.moyenne = self.R.mean(axis=1)
@@ -41,8 +36,13 @@ class RecoUserBased:
         norme[norme == 0] = 1.0                    # utilisateur sans variation : similarité 0
         sim = (X0 @ X0.T) / (norme @ norme.T)
         np.fill_diagonal(sim, 0.0)                 # on n'est pas son propre voisin
-        sim = np.clip(sim, 0.0, None)              # les similarités négatives (centrage) ne servent pas
+        sim = np.clip(sim, 0.0, None)              # similarité négative = goûts opposés : pas un voisin
         self.sim = pd.DataFrame(sim, index=self.R.index, columns=self.R.index)
+
+        # Option : les utilisateurs trop peu actifs ne peuvent pas servir de voisins
+        if self.min_avis:
+            peu_actifs = self.R.notna().sum(axis=1) < self.min_avis
+            self.sim.loc[:, peu_actifs[peu_actifs].index] = 0.0
         return self
 
     def niveau(self, user):
@@ -50,8 +50,9 @@ class RecoUserBased:
         return self.moyenne.get(user, self.moyenne_globale)
 
     def voisins(self, user):
-        """Les k utilisateurs les plus similaires, avec leur similarité."""
-        return self.sim.loc[user].nlargest(self.k)
+        """Les k utilisateurs les plus similaires (similarité > 0), avec leur similarité."""
+        v = self.sim.loc[user].nlargest(self.k)
+        return v[v > 0]
 
     def score(self, user):
         """Score de chaque film : moyenne des notes des voisins pondérée par leur similarité (non borné)."""
@@ -79,14 +80,3 @@ class RecoUserBased:
         top = score[~vus & (n_voisins >= self.min_voisins)].nlargest(n)
         return pd.DataFrame({"note prédite": top.clip(0.5, 5.0), "voisins": n_voisins[top.index]})
 
-
-class RecoPearson(RecoUserBased):
-    """User-based avec corrélation de Pearson : cosinus sur les notes centrées par utilisateur.
-
-    Même modèle que RecoUserBased avec centrer=True : la similarité compare les écarts à la moyenne
-    de chacun (un 4 vaut +0,5 pour qui met 3,5 en moyenne), et la note prédite est la moyenne de
-    l'utilisateur plus la moyenne pondérée des écarts de ses voisins.
-    """
-
-    def __init__(self, k=30, min_voisins=1, min_avis=0):
-        super().__init__(k=k, min_voisins=min_voisins, centrer=True, min_avis=min_avis)

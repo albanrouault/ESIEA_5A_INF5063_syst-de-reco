@@ -1,4 +1,4 @@
-"""Évaluation des modèles sur l'ensemble de test."""
+"""Évaluation des modèles sur un ensemble d'avis cachés (test ou validation)."""
 
 import numpy as np
 import pandas as pd
@@ -19,7 +19,7 @@ def rmse_mae(y_vrai, y_pred):
     return np.sqrt(np.mean(erreur ** 2)), np.mean(np.abs(erreur))
 
 
-def pertinents_test(test, seuil=4.0):
+def pertinents_test(test, seuil):
     """Films aimés (note >= seuil) de chaque utilisateur dans le test : {userId: ensemble de movieId}."""
     aimes = test[test["rating"] >= seuil]
     return aimes.groupby("userId")["movieId"].apply(set).to_dict()
@@ -29,6 +29,7 @@ def precision_rappel_ndcg(recommandes, pertinents, k=10):
     """Précision, rappel et NDCG top k pour un utilisateur.
 
     recommandes : movieId proposés, dans l'ordre ; pertinents : ensemble des movieId aimés cachés.
+    La précision divise toujours par k : proposer moins de k films est pénalisé.
     """
     trouve = [film in pertinents for film in list(recommandes)[:k]]     # True si le film proposé est pertinent
     n_trouves = sum(trouve)
@@ -40,11 +41,13 @@ def precision_rappel_ndcg(recommandes, pertinents, k=10):
     return precision, rappel, ndcg
 
 
-def evaluer_top_k(recommander, test, k=10, seuil=4.0):
+def evaluer_top_k(recommander, test, seuil, k=10):
     """Précision, rappel et NDCG top k de chaque utilisateur du test (une ligne par utilisateur).
 
     recommander(user, k) doit renvoyer les movieId proposés à user, dans l'ordre.
+    Tous les utilisateurs du test sont évalués ; sans film aimé caché, les trois valent 0.
     """
     pertinents = pertinents_test(test, seuil)
-    lignes = {user: precision_rappel_ndcg(recommander(user, k), films, k) for user, films in pertinents.items()}
+    lignes = {user: precision_rappel_ndcg(recommander(user, k), pertinents.get(user, set()), k)
+              for user in np.sort(test["userId"].unique())}
     return pd.DataFrame.from_dict(lignes, orient="index", columns=[f"précision@{k}", f"rappel@{k}", f"NDCG@{k}"])

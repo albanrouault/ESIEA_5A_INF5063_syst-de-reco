@@ -6,7 +6,7 @@ sur [The Movies Dataset](https://www.kaggle.com/datasets/rounakbanik/the-movies-
 
 Sujet : `Ressources/TP systèmes de recommandation.pdf`. Cours : `Ressources/Systèmes de recommandations (1).pdf`.
 
-Travail : `TP_reco.ipynb` (questions et réponses), `modeles.py` (modèles de recommandation), `evaluation.py` (métriques).
+Travail : `TP_reco.ipynb` (questions et réponses), `donnees.py` (séparation train/test), `modeles.py` (modèles de recommandation), `evaluation.py` (métriques).
 
 ## Installation
 
