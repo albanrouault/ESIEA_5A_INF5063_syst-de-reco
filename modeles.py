@@ -53,8 +53,8 @@ class RecoUserBased:
         """Les k utilisateurs les plus similaires, avec leur similarité."""
         return self.sim.loc[user].nlargest(self.k)
 
-    def predire(self, user):
-        """Note prédite pour chaque film : moyenne des notes des voisins pondérée par leur similarité."""
+    def score(self, user):
+        """Score de chaque film : moyenne des notes des voisins pondérée par leur similarité (non borné)."""
         if user not in self.R.index:               # utilisateur inconnu : moyenne globale partout
             return pd.Series(self.moyenne_globale, index=self.R.columns)
         v = self.voisins(user)
@@ -63,12 +63,30 @@ class RecoUserBased:
         pred = notes.fillna(0.0).mul(v.to_numpy(), axis=0).sum() / poids.sum()
         if self.centrer:
             pred = pred + self.moyenne[user]                               # on remet le niveau de l'utilisateur
-        return pred.fillna(self.moyenne[user]).clip(0.5, 5.0)              # aucun voisin ne l'a vu : moyenne de l'utilisateur
+        return pred.fillna(self.moyenne[user])                             # aucun voisin ne l'a vu : moyenne de l'utilisateur
+
+    def predire(self, user):
+        """Note prédite pour chaque film, ramenée sur l'échelle 0,5 à 5."""
+        return self.score(user).clip(0.5, 5.0)
 
     def recommander(self, user, n=10):
-        """Les n films non vus en train avec la meilleure note prédite."""
-        pred = self.predire(user)
+        """Les n films non vus en train avec le meilleur score (classement sur le score non borné)."""
+        if user not in self.R.index:               # utilisateur inconnu : rien à recommander
+            return pd.DataFrame(columns=["note prédite", "voisins"])
+        score = self.score(user)
         vus = self.R.loc[user].notna()
         n_voisins = self.R.loc[self.voisins(user).index].notna().sum()   # voisins ayant vu chaque film
-        top = pred[~vus & (n_voisins >= self.min_voisins)].nlargest(n)
-        return pd.DataFrame({"note prédite": top, "voisins": n_voisins[top.index]})
+        top = score[~vus & (n_voisins >= self.min_voisins)].nlargest(n)
+        return pd.DataFrame({"note prédite": top.clip(0.5, 5.0), "voisins": n_voisins[top.index]})
+
+
+class RecoPearson(RecoUserBased):
+    """User-based avec corrélation de Pearson : cosinus sur les notes centrées par utilisateur.
+
+    Même modèle que RecoUserBased avec centrer=True : la similarité compare les écarts à la moyenne
+    de chacun (un 4 vaut +0,5 pour qui met 3,5 en moyenne), et la note prédite est la moyenne de
+    l'utilisateur plus la moyenne pondérée des écarts de ses voisins.
+    """
+
+    def __init__(self, k=30, min_voisins=1, min_avis=0):
+        super().__init__(k=k, min_voisins=min_voisins, centrer=True, min_avis=min_avis)
