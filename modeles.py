@@ -36,7 +36,7 @@ class RecoUserBased:
         norme[norme == 0] = 1.0                    # utilisateur sans variation : similarité 0
         sim = (X0 @ X0.T) / (norme @ norme.T)
         np.fill_diagonal(sim, 0.0)                 # on n'est pas son propre voisin
-        sim = np.clip(sim, 0.0, None)              # similarité négative = goûts opposés : pas un voisin
+        sim = np.clip(sim, 0.0, None)              # goûts opposés : pas un voisin (n'existe qu'avec le centrage, sinon tout est >= 0)
         self.sim = pd.DataFrame(sim, index=self.R.index, columns=self.R.index)
 
         # Option : les utilisateurs trop peu actifs ne peuvent pas servir de voisins

@@ -51,3 +51,20 @@ def evaluer_top_k(recommander, test, seuil, k=10):
     lignes = {user: precision_rappel_ndcg(recommander(user, k), pertinents.get(user, set()), k)
               for user in np.sort(test["userId"].unique())}
     return pd.DataFrame.from_dict(lignes, orient="index", columns=[f"précision@{k}", f"rappel@{k}", f"NDCG@{k}"])
+
+
+def evaluer_modele(reco, valid, seuil, top_k=10):
+    """Toutes les mesures d'un modèle entraîné, sur un ensemble d'avis cachés (validation ou test).
+
+    RMSE, MAE, précision, rappel et NDCG top k, popularité médiane des films proposés
+    (nombre d'avis en train) et nombre de films distincts proposés.
+    """
+    rmse, mae = rmse_mae(valid["rating"], predire_test(reco, valid))
+    listes = {u: list(reco.recommander(u, top_k).index) for u in valid["userId"].unique()}
+    topk = evaluer_top_k(lambda u, k: listes[u][:k], valid, seuil, top_k).mean()
+    n_avis = reco.R.notna().sum()
+    proposes = [f for films in listes.values() for f in films]
+    popularite = np.median([n_avis.get(f, 0) for f in proposes]) if proposes else np.nan   # aucun film proposé : NaN
+    distincts = len(set(proposes))
+    return pd.Series({"RMSE": rmse, "MAE": mae, **topk.to_dict(),
+                      "popularité médiane": popularite, "films distincts": distincts})
