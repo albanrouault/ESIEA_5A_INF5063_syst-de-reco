@@ -80,3 +80,84 @@ class RecoUserBased:
         top = score[~vus & (n_voisins >= self.min_voisins)].nlargest(n)
         return pd.DataFrame({"note prédite": top.clip(0.5, 5.0), "voisins": n_voisins[top.index]})
 
+
+
+class RecoItemBased:
+    """Filtrage collaboratif item-based : similarité cosinus entre films, moyenne pondérée des notes de l'utilisateur.
+
+    Note prédite d'un film = moyenne des notes de l'utilisateur sur les k films notés les plus proches, pondérée par
+    la similarité. Recommandation = algorithme du cours : ses n_favoris films préférés, les k plus proches non vus de
+    chacun, puis classement. Exercice 4, bonus.
+
+    k          : films voisins retenus (au plus) : par film à prédire, ou par favori pour recommander.
+    n_favoris  : films préférés de l'utilisateur d'où partent les recommandations.
+    min_avis   : un film doit avoir au moins min_avis avis en train pour avoir une similarité (sinon trop bruitée).
+    classement : "note", par note prédite (cours) ; "somme", par somme des similarités x notes des favoris
+                 (règle usuelle du top N item-based : un film relié à dix favoris passe devant un film relié à un seul).
+    """
+
+    def __init__(self, k=10, n_favoris=10, min_avis=5, classement="note"):
+        self.k = k
+        self.n_favoris = n_favoris
+        self.min_avis = min_avis
+        self.classement = classement
+
+    def fit(self, train):
+        self.R = train.pivot(index="userId", columns="movieId", values="rating")
+        self.moyenne = self.R.mean(axis=1)
+        self.moyenne_globale = train["rating"].mean()
+
+        # Films assez notés ; 0 dans les cases vides, une ligne par film
+        n_avis = self.R.notna().sum()
+        self.films = n_avis[n_avis >= self.min_avis].index
+        X0 = self.R[self.films].fillna(0.0).to_numpy().T
+
+        # Similarité cosinus entre tous les films
+        norme = np.linalg.norm(X0, axis=1, keepdims=True)
+        sim = (X0 @ X0.T) / (norme @ norme.T)
+        np.fill_diagonal(sim, 0.0)
+        self.sim = pd.DataFrame(sim, index=self.films, columns=self.films)
+        return self
+
+    def niveau(self, user):
+        """Note moyenne de l'utilisateur (moyenne globale s'il est inconnu du modèle)."""
+        return self.moyenne.get(user, self.moyenne_globale)
+
+    def _poids(self, user):
+        """Similarité de chaque film (lignes) avec les k films les plus proches notés par user (colonnes), 0 ailleurs."""
+        notes = self.R.loc[user, self.films].dropna()                       # films notés par l'utilisateur
+        S = self.sim[notes.index].to_numpy()
+        if S.shape[1] > self.k:                                            # ne garder que les k plus similaires par ligne
+            kieme = -np.partition(-S, self.k - 1, axis=1)[:, self.k - 1:self.k]
+            S = np.where(S >= kieme, S, 0.0)
+        return pd.DataFrame(S, index=self.films, columns=notes.index), notes
+
+    def score(self, user):
+        """Score de chaque film : moyenne des notes de l'utilisateur pondérée par la similarité (non borné)."""
+        if user not in self.R.index:
+            return pd.Series(self.moyenne_globale, index=self.films)
+        S, notes = self._poids(user)
+        pred = pd.Series((S.to_numpy() @ notes.to_numpy()) / S.sum(axis=1), index=self.films)
+        return pred.fillna(self.moyenne[user])                             # aucun film voisin : moyenne de l'utilisateur
+
+    def predire(self, user):
+        """Note prédite pour chaque film assez noté, ramenée sur l'échelle 0,5 à 5."""
+        return self.score(user).clip(0.5, 5.0)
+
+    def recommander(self, user, n=10):
+        """Algorithme du cours : n_favoris films préférés, k plus proches non vus de chacun, classement, top n."""
+        if user not in self.R.index:
+            return pd.DataFrame(columns=["note prédite", "voisins"])
+        notes = self.R.loc[user, self.films].dropna()
+        favoris = notes.nlargest(self.n_favoris)                            # ses films préférés
+        if favoris.empty:
+            return pd.DataFrame(columns=["note prédite", "voisins"])
+        S = self.sim[favoris.index].copy()                                  # similarité de chaque film avec les favoris
+        S.loc[notes.index] = 0.0                                            # films déjà vus : pas candidats
+        kieme = -np.partition(-S.to_numpy(), self.k - 1, axis=0)[self.k - 1]   # k-ième plus proche de chaque favori
+        S = S.where(S >= kieme, 0.0)                                        # ne garder que les k plus proches par favori
+        somme = pd.Series(S.to_numpy() @ favoris.to_numpy(), index=S.index)  # somme des similarités x notes des favoris
+        note = somme / S.sum(axis=1)                                        # moyenne pondérée = note prédite
+        score = somme if self.classement == "somme" else note
+        top = score[S.sum(axis=1) > 0].nlargest(n)
+        return pd.DataFrame({"note prédite": note[top.index].clip(0.5, 5.0), "voisins": (S.loc[top.index] > 0).sum(axis=1)})
