@@ -8,6 +8,13 @@ Sujet : `Ressources/TP systèmes de recommandation.pdf`. Cours : `Ressources/Sys
 
 Travail : `TP_reco.ipynb` (questions et réponses), `donnees.py` (séparation train/test), `modeles.py` (modèles de recommandation), `evaluation.py` (métriques).
 
+Pour le rendu : `tp_reco_code.py` regroupe les trois modules en un seul fichier (même code, à régénérer si les modules changent), `TP_reco_execute.html` est l'export du notebook exécuté avec ses sorties, `resultats/` contient les mesures de la validation croisée (CSV) et les figures déposées dans le questionnaire (PNG), `questionnaire/` les réponses au questionnaire Moodle (un Word par question).
+
+```bash
+uv run jupyter nbconvert --to notebook --execute --inplace TP_reco.ipynb   # tout ré-exécuter (~15 min, grille en cache dans resultats/)
+uv run jupyter nbconvert --to html --embed-images --output TP_reco_execute.html TP_reco.ipynb   # export avec les sorties
+```
+
 ## Installation
 
 Prérequis : [uv](https://docs.astral.sh/uv/), qui installe aussi Python tout seul si besoin.

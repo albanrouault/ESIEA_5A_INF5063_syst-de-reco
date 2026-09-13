@@ -68,3 +68,17 @@ def evaluer_modele(reco, valid, seuil, top_k=10):
     distincts = len(set(proposes))
     return pd.Series({"RMSE": rmse, "MAE": mae, **topk.to_dict(),
                       "popularité médiane": popularite, "films distincts": distincts})
+
+
+def evaluer_populaire(train, valid, seuil, top_k=10):
+    """Le repère sans modèle : à chaque utilisateur, les top_k films les plus notés en train qu'il n'a pas vus.
+
+    Mêmes mesures qu'evaluer_modele (sans RMSE ni MAE : ce repère ne prédit pas de note).
+    """
+    n_avis = train.groupby("movieId").size().sort_values(ascending=False)
+    vus = train.groupby("userId")["movieId"].apply(set)
+    listes = {u: [f for f in n_avis.index if f not in vus.get(u, set())][:top_k] for u in valid["userId"].unique()}
+    topk = evaluer_top_k(lambda u, k: listes[u][:k], valid, seuil, top_k).mean()
+    proposes = [f for films in listes.values() for f in films]
+    return pd.Series({**topk.to_dict(), "popularité médiane": np.median([n_avis.get(f, 0) for f in proposes]),
+                      "films distincts": len(set(proposes))})
