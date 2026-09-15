@@ -8,7 +8,7 @@ Sujet : `Ressources/TP systèmes de recommandation.pdf`. Cours : `Ressources/Sys
 
 Travail : `TP_reco.ipynb` (questions et réponses), `donnees.py` (séparation train/test), `modeles.py` (modèles de recommandation), `evaluation.py` (métriques).
 
-Pour le rendu : `tp_reco_code.py` regroupe les trois modules en un seul fichier (même code, à régénérer si les modules changent), `TP_reco_execute.html` est l'export du notebook exécuté avec ses sorties, `resultats/` contient les mesures de la validation croisée (CSV) et les figures déposées dans le questionnaire (PNG), `questionnaire/` les réponses au questionnaire Moodle (un Word par question).
+Pour le rendu : `tp_reco_code.py` regroupe les trois modules en un seul fichier (même code, à régénérer si les modules changent), `TP_reco_execute.html` est l'export du notebook exécuté avec ses sorties, `resultats/` contient les mesures de la validation croisée (CSV), `questionnaire/v1/` les réponses au questionnaire Moodle (un Word par question, le rapport complet, les figures déposées dans `ressources/`), `questionnaire/v2/` un rapport alternatif complet où le système retenu est (30, 10) par la règle à un écart-type (Word, figures dans `ressources/`), recalculé et rédigé dans `TP_reco_v2_complet.ipynb` (export `TP_reco_v2_execute.html`) ; `TP_reco_v2.ipynb` est le notebook d'appui des compléments (autres réglages, seuil de similarité, règle à un écart-type). Rendre l'une ou l'autre version, avec son rapport et son export HTML ; le code des modules est le même.
 
 ```bash
 uv run jupyter nbconvert --to notebook --execute --inplace TP_reco.ipynb   # tout ré-exécuter (~15 min, grille en cache dans resultats/)

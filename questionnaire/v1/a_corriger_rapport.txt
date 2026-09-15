@@ -1,0 +1,129 @@
+CE QUE JE DOIS FAIRE (décision du 15/09/2026 : on garde la v1, système retenu (50, 15))
+==========================================================================================
+Dans l'ordre :
+  a) Point 1  : supprimer la phrase de gabarit « Birkes and Dodge ».
+  b) Point 2  : reporter dans le rapport les versions à jour de Q6, Q8 et Q12 (textes mot pour mot dans
+                v2/modifications_rapport_v2.docx, partie A.2, ou dans les Word Q6/Q8/Q12 de ce dossier).
+  c) Point 3  : insérer la figure des genres dans Q10 (ressources/ex5_q10_fig3_genres_global.png).
+  d) Point 4  : corriger la phrase des « 12 utilisateurs » dans Q3 et ne garder que la RMSE pour le tirage simple.
+  e) Point 5  : les trois détails de forme.
+  f) Point 10 : ajouter dans Q6, après « (50, 15) est le compromis », la phrase sur la règle à un écart-type.
+  g) Point 9  : ajouter dans Q6, après la mesure finale sur le test, la phrase de vérification de (30, 10).
+  h) Points 7 et 8 seulement s'il reste du temps (seuil de similarité, ligne (25, 8)).
+  i) Point 6 uniquement si le titre de Q9 a été recopié à la main.
+Rien à changer dans le notebook principal, les modules, les figures ni les CSV. TP_reco_v2.ipynb reste un
+notebook d'appui (non rendu) : c'est de là que viennent les chiffres des points 7 à 10.
+
+Ligne à tenir si on vous demande pourquoi (50, 15) et pas (30, 10) : le sujet demande de choisir et de
+justifier ; le critère annoncé est le NDCG@10 en validation avec la RMSE en contrôle ; sur ce critère les trois
+réglages de la crête se valent et (50, 15) est le compromis entre la RMSE, qui pousse vers (100, 35), et la
+variété, qui pousse vers (30, 10). La vérification sur le test confirme que ce compromis ne coûte rien. Le choix
+est ferme ; ce qui est discuté, c'est le critère secondaire, et c'est l'objet de l'exercice 5.
+
+Corrections à faire dans rambaud-saget-rouault_questionnaire.docx (relecture du 15/09/2026)
+==========================================================================================
+
+1. Phrase de gabarit à supprimer, au début sous « Exploration initiale » :
+   « On analyse les résultats d'une étude par Birkes and Dodge (1993) qui décrivent le lien entre u »
+
+2. Q6, Q8 et Q12 sont des versions antérieures aux fichiers du dossier questionnaire/.
+   Reporter les versions à jour :
+   - Q6 (hyperparamètres) : il manque le paragraphe « Si la diversité comptait autant que la
+     qualité, on ne choisirait pas ce point » et le tableau des trois réglages (50, 15), (30, 10), (20, 5).
+     Source : Q6_hyperparametres.docx
+   - Q8 (popularité) : le paragraphe « Ce qu'on aurait pu faire, et ce qu'on ferait » est l'ancien
+     (« On a préféré le milieu de la zone stable »). Le nouveau présente aussi le réglage (20, 5).
+     Source : Q8_popularite.docx
+   - Q12 (production) : le point 4 est la version courte. La version à jour a quatre paragraphes
+     (approche par modèle, factorisation matricielle, machine learning, « On ne les a pas mesurés dans ce TP »).
+     Source : Q12_production.docx
+
+3. Q10 (diversité globale) : le texte annonce trois figures et décrit la troisième (genre par genre),
+   mais seules deux sont insérées. Insérer ressources/ex5_q10_fig3_genres_global.png (dossier v1).
+
+4. Q3 (split) : imprécision.
+   - « 12 utilisateurs qui ont moins de 5 films aimés » -> la règle « au moins un » ne change le tirage
+     que pour les 5 utilisateurs qui ont 2 films aimés ou moins (à 3 ou 4 films, round(0,2 x n) = 1 déjà).
+   - « Avec un tirage simple, on retrouve les mêmes RMSE, précision et NDCG, seul le rappel baisse un peu »
+     n'est plus vérifié par le notebook actuel, qui ne compare que la RMSE (1,011 stratifié / 1,014 simple).
+     Soit ne garder que la RMSE, soit remettre le contrôle complet dans le notebook.
+
+5. Forme :
+   - titre : « recommendation » -> « recommandation »
+   - « sur la base dedonnées » -> « base de données »
+   - Q2 (box-office) : « j'ai vérifié directement sur leur site » -> première personne du singulier dans
+     un rapport à trois, et « leur site » est vague (préciser TMDB, ou passer au « on »).
+
+6. Seulement si le titre a été recopié à la main (pas si c'est le gabarit) :
+   le titre de Q9 dit « Les recommandations faites au global sont-elles diverses ? » au lieu de
+   « ... faites pour un utilisateur ... ». Le même titre apparaît donc deux fois de suite.
+
+Ajouts optionnels (mesures du 15/09/2026, validation croisée à 5 parts, mêmes parts que le notebook,
+mesures brutes dans resultats/v2_*.csv, notebook TP_reco_v2.ipynb)
+==========================================================================================
+
+7. Q6, paragraphe « Stabilité » : une phrase sur le seuil de similarité testé.
+   « On a aussi testé un seuil de similarité cosinus pour être voisin. En plus des 50 voisins, un seuil
+   de 0,10 ne change rien (NDCG 0,145 contre 0,151, RMSE 1,016 contre 1,018) et 0,15 fait perdre 0,03.
+   À la place des k voisins, le NDCG est divisé par deux (0,070 à 0,10, 0,091 à 0,15) : les similarités
+   sont trop hétérogènes d'un utilisateur à l'autre (à 0,10, de 0 à 522 voisins selon l'utilisateur,
+   46 utilisateurs n'atteignent plus les 15 voisins requis), et un seuil fixe casse le lien entre k et
+   min_voisins. On garde donc les k voisins. »
+
+   Chiffres (référence (50, 15), seuil 0 : RMSE 1,018, NDCG 0,151, 219 films distincts) :
+     en plus, seuil 0,10      : RMSE 1,016  NDCG 0,145  211 films
+     en plus, seuil 0,15      : RMSE 1,014  NDCG 0,123  203 films
+     à la place, seuil 0,10   : RMSE 0,993  NDCG 0,070  197 films
+     à la place, seuil 0,15   : RMSE 1,003  NDCG 0,091  198 films
+
+8. Q6, tableau « Si la diversité comptait autant que la qualité » : ajouter la ligne (25, 8).
+   (25, 8) : NDCG 0,146, 339 films différents, popularité médiane 126 avis.
+   Presque aussi bon que (50, 15) (0,151, écart de l'ordre du bruit entre parts, 0,002 à 0,006)
+   et 55 % de films différents en plus (339 contre 219). Le plateau commence donc vers k = 25.
+
+   Points complémentaires mesurés (k, min_voisins) : RMSE / NDCG / films distincts / popularité
+     (20, 7)  : 1,045 / 0,143 / 374 / 124   -> à k = 20 le meilleur seuil est 7, pas 5 (0,126) ni 10 (0,118)
+     (20, 8)  : 1,045 / 0,142 / 337 / 126
+     (25, 8)  : 1,037 / 0,146 / 339 / 126
+     (25, 10) : 1,037 / 0,146 / 287 / 128
+   Ils confirment la crête k / 3 et le niveau qui monte avec k : 0,143 (20), 0,146 (25), 0,150 (30), 0,151 (50).
+   Le choix (50, 15) reste valable sur le critère NDCG.
+
+9. Vérification (30, 10) contre (50, 15), notebook TP_reco_v2.ipynb, section « Compléments » et section finale.
+   Validation, écart apparié part par part sur le NDCG :
+     (30, 10) : -0,001 en moyenne, (50, 15) meilleur sur 4 parts sur 5 mais écarts de -0,005 à +0,006 -> indépartageables
+     (25, 8)  : -0,005, (50, 15) meilleur sur 5 parts sur 5 -> petit écart mais réel
+     (20, 7)  : -0,007, 5 parts sur 5
+   Test, une seule fois (le choix reste fait en validation) :
+     (50, 15) : NDCG 0,191  RMSE 0,999  249 films distincts  popularité médiane 159
+     (30, 10) : NDCG 0,201  RMSE 1,011  337 films distincts  popularité médiane 151
+     (25, 8)  : NDCG 0,190  RMSE 1,017  397 films distincts  popularité médiane 138
+     (20, 7)  : NDCG 0,195  RMSE 1,025  427 films distincts  popularité médiane 133
+   Les bons films trouvés (aimés cachés) sont aussi plus variés : 196 films distincts pour (30, 10) contre 167,
+   pour autant de bons films trouvés (1 018 contre 995). La variété en plus n'est pas du remplissage.
+   Conclusion : les réglages de la crête sont bien équivalents sur le top 10, et le compromis (50, 15) ne coûte
+   rien en qualité. NE PAS écrire « si c'était à refaire on prendrait (30, 10) » : le sujet demande de choisir et
+   de justifier, la réponse doit rester ferme. Phrase possible pour Q6, après la mesure finale sur le test :
+   « On a vérifié après coup, sur le test, que le compromis ne coûte rien en qualité : (30, 10), le réglage
+   équivalent le plus varié, obtient un NDCG de 0,201 contre 0,191, avec 337 films différents contre 249 et une
+   RMSE un peu moins bonne (1,011 contre 0,999). Les trois réglages de la crête se valent sur le top 10 ; le choix
+   entre eux est un choix de critère secondaire, et on garde (50, 15) parce que l'exercice demande la qualité du
+   top 10 avec la RMSE en contrôle. Si la diversité entrait dans le critère, ce serait (30, 10). »
+
+10. Règle de choix « à un écart-type » (TP_reco_v2.ipynb, juste après la grille).
+    L'argmax du NDCG donne (50, 15). Parmi les réglages à moins d'un écart-type entre parts (0,004) du meilleur,
+    soit (30, 10), (50, 15), (50, 20) et (100, 35), le plus varié est (30, 10) : 289 films différents contre 219,
+    NDCG 0,150 contre 0,151. Avec la RMSE comme second critère, la même règle retient (100, 35) (RMSE 1,004).
+    Phrase possible pour Q6, juste après « (50, 15) est le compromis » :
+    « Une règle plus prudente que le maximum, garder les réglages à moins d'un écart-type (0,004) du meilleur puis
+    départager sur un second critère, confirme cette lecture : parmi (30, 10), (50, 15), (50, 20) et (100, 35),
+    indépartageables sur le NDCG, la RMSE désigne (100, 35) et la variété (30, 10). (50, 15) est entre les deux,
+    et c'est le compromis qu'on retient. »
+    Exercice 5 recalculé avec (30, 10) (section finale de la v2) : popularité 151 (159), couverture 337 films (249),
+    23 films pour la moitié des recommandations (19), 1,5 film en commun entre deux utilisateurs (1,9),
+    28 % de paires sans rien en commun (21 %). Même nature de conclusions, un peu moins marquées.
+
+Alternative complète : questionnaire/v2/rapport_v2.docx est le même rapport entièrement recalculé pour (30, 10)
+(règle à un écart-type, second critère = variété), avec ses figures dans v2/ressources/ (mêmes noms qu'en v1).
+Les corrections 1 à 5 y sont déjà appliquées. Le notebook correspondant est TP_reco_v2_complet.ipynb.
+Le Word modifications_a_faire.docx de ce dossier reprend les points 1 à 10 avec les textes prêts à coller.
