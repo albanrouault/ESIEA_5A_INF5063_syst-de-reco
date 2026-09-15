@@ -1,9 +1,13 @@
 """TP systèmes de recommandation (INF5063, ESIEA 5A) : tout le code du TP en un seul fichier.
 
-Lancer : uv run python tp_reco.py
-Les tableaux s'affichent dans le terminal, les figures sont enregistrées dans le dossier figures/.
-Les mesures longues (validation croisée) sont relues depuis resultats/ si les fichiers existent.
-Le code suit l'ordre des exercices du sujet. Les réponses rédigées sont dans le notebook et le rapport.
+Rambaud, Saget, Rouault. Besoin de Python 3.12 avec pandas (2.2 ou plus), numpy et matplotlib.
+
+Lancer : python tp_reco.py
+Les trois CSV du dataset (movies_metadata.csv, ratings_small.csv, links_small.csv) doivent être à côté du script
+ou dans un sous-dossier dataset/. Les tableaux s'affichent dans le terminal, les figures sont enregistrées dans
+figures/. Les mesures de validation croisée sont enregistrées dans resultats/ à la première exécution (environ
+25 minutes de plus) et relues ensuite. Durée avec les résultats déjà là : environ 10 minutes.
+Le code suit l'ordre des exercices du sujet. Les réponses rédigées sont dans le rapport.
 """
 
 import ast
@@ -28,8 +32,13 @@ DATA_DIR = next(
         for d in (Path("Ressources/dataset"), Path("dataset"), Path("data"), Path("."))
         if (d / "ratings_small.csv").exists()
     ),
-    Path("."),
+    None,
 )
+if DATA_DIR is None:
+    raise SystemExit(
+        "Dataset introuvable : mettre movies_metadata.csv, ratings_small.csv et links_small.csv "
+        "à côté du script ou dans un sous-dossier dataset/."
+    )
 DOSSIER_FIGURES = Path("figures")
 DOSSIER_FIGURES.mkdir(exist_ok=True)
 
