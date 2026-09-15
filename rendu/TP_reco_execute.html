@@ -13335,7 +13335,7 @@ au-delà de la grille avant de choisir.</p>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [48]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Réglage retenu : règle à un écart-type, second critère = films distincts (voir la section Compléments)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Réglage retenu : indépartageables à un écart-type du meilleur NDCG, second critère = films distincts (voir la section Compléments)</span>
 <span class="n">complement</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"resultats/v2_grille_complement_cv.csv"</span><span class="p">)</span>
 <span class="n">par</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">grille</span><span class="p">,</span> <span class="n">crete</span><span class="p">,</span> <span class="n">complement</span><span class="p">])</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"k"</span><span class="p">,</span> <span class="s2">"min_voisins"</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
     <span class="o">**</span><span class="p">{</span><span class="s2">"NDCG@10"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"NDCG@10"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span> <span class="s2">"NDCG écart-type"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"NDCG@10"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">),</span> <span class="s2">"RMSE"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"RMSE"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span> <span class="s2">"films distincts"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"films distincts"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">)})</span>
@@ -13475,11 +13475,9 @@ la crête coûte cher : à k = 50, passer le seuil de 15 à 25 divise le NDCG pa
 tout perdre. Le système est stable le long de la crête, instable en dehors : les deux hyperparamètres doivent être
 réglés ensemble, pas l'un après l'autre.</li>
 </ul>
-<p><strong>Choix : k = 30, min_voisins = 10, par la règle « à un écart-type ».</strong> Le meilleur NDCG moyen est (50, 15),
+<p><strong>Choix : k = 30, min_voisins = 10, à égalité avec le meilleur, puis le plus varié.</strong> Le meilleur NDCG moyen est (50, 15),
 0,151 ± 0,004. Mais quatre réglages sont à moins d'un écart-type de ce maximum, donc indépartageables sur le critère
-principal : (30, 10), (50, 15), (50, 20) et (100, 35). Prendre le maximum reviendrait à choisir sur du bruit. La règle
-« à un écart-type » (<em>one standard error rule</em>, la règle usuelle pour choisir un modèle en validation croisée) départage
-ces réglages sur un second critère ; la marge est donnée par la validation elle-même, pas choisie à la main. La RMSE
+principal : (30, 10), (50, 15), (50, 20) et (100, 35). Prendre le maximum reviendrait à choisir sur du bruit. On prend comme marge l'écart-type mesuré entre les parts, c'est le bruit de la mesure : les réglages à moins d'un écart-type du meilleur sont à égalité, et on les départage sur un second critère. La marge est donnée par la validation elle-même, pas choisie à la main. C'est la règle « à un écart-type » de la validation croisée (<em>one-standard-error rule</em>, Hastie, Tibshirani &amp; Friedman, <em>The Elements of Statistical Learning</em>, 2009, chap. 7), un conseil de l'IA basé sur cette source ; la règle d'origine prend ensuite le modèle le plus simple, ici on prend le meilleur sur un second critère. La RMSE
 désignerait (100, 35) (1,004), mais avec 126 films différents proposés seulement. La variété désigne (30, 10) : 289 films
 différents contre 219 pour (50, 15) et 126 pour (100, 35), et les films les moins populaires des quatre (129 avis en
 médiane contre 134 et 143). On prend la variété comme second critère, parce que le cours et l'exercice 5 pointent le
@@ -13789,9 +13787,7 @@ pour un utilisateur qui a moins de 10 films aimés cachés. La comparaison entre
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <p><strong>Un choix plus prudent que le maximum.</strong> Prendre le réglage au NDCG moyen le plus élevé, sans autre
 considération. Or deux réglages à moins d'un écart-type entre parts l'un de l'autre ne sont pas départageables, on l'a dit dans
-le commentaire sur la stabilité. La règle « à un écart-type » (<em>one standard error rule</em>, la règle usuelle pour choisir un modèle
-en validation croisée) en tire la conséquence : parmi les réglages dont le NDCG est à moins d'un écart-type du meilleur, on prend
-celui qui satisfait un second critère, ici le nombre de films différents proposés. La marge est donnée par la validation
+le commentaire sur la stabilité. On en tire la conséquence : parmi les réglages dont le NDCG est à moins d'un écart-type du meilleur, on prend celui qui satisfait un second critère, ici le nombre de films différents proposés. C'est la règle « à un écart-type » de la validation croisée (<em>one-standard-error rule</em>, Hastie, Tibshirani &amp; Friedman, <em>The Elements of Statistical Learning</em>, 2009, chap. 7), un conseil de l'IA basé sur cette source ; la règle d'origine prend ensuite le modèle le plus simple, ici on prend le meilleur sur un second critère. La marge est donnée par la validation
 elle-même, pas choisie à la main.</p>
 </div>
 </div>
@@ -13804,7 +13800,7 @@ elle-même, pas choisie à la main.</p>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [51]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Règle à un écart-type : indépartageables du meilleur, puis le plus varié</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Marge d'un écart-type : indépartageables du meilleur, puis le plus varié</span>
 <span class="n">resume_tout</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">grille</span><span class="p">,</span> <span class="n">crete</span><span class="p">,</span> <span class="n">complement</span><span class="p">])</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"k"</span><span class="p">,</span> <span class="s2">"min_voisins"</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
     <span class="o">**</span><span class="p">{</span><span class="s2">"NDCG@10"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"NDCG@10"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span> <span class="s2">"NDCG écart-type"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"NDCG@10"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">),</span> <span class="s2">"RMSE"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"RMSE"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span>
        <span class="s2">"films distincts"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"films distincts"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span> <span class="s2">"popularité médiane"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"popularité médiane"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">)})</span>
@@ -13812,7 +13808,7 @@ elle-même, pas choisie à la main.</p>
 <span class="n">marge</span> <span class="o">=</span> <span class="n">resume_tout</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">best</span><span class="p">,</span> <span class="s2">"NDCG écart-type"</span><span class="p">]</span>
 <span class="n">candidats</span> <span class="o">=</span> <span class="n">resume_tout</span><span class="p">[</span><span class="n">resume_tout</span><span class="p">[</span><span class="s2">"NDCG@10"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">resume_tout</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">best</span><span class="p">,</span> <span class="s2">"NDCG@10"</span><span class="p">]</span> <span class="o">-</span> <span class="n">marge</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"films distincts"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Meilleur NDCG : </span><span class="si">{</span><span class="n">best</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">resume_tout</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">best</span><span class="p">,</span><span class="w"> </span><span class="s1">'NDCG@10'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">marge</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">  -&gt;  indépartageables : </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">candidats</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Choix par la règle à un écart-type (le plus varié parmi eux) : </span><span class="si">{</span><span class="n">candidats</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Choix, le plus varié parmi les indépartageables : </span><span class="si">{</span><span class="n">candidats</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">candidats</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -13827,7 +13823,7 @@ elle-même, pas choisie à la main.</p>
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>Meilleur NDCG : (np.int64(50), np.int64(15)), 0.151 ± 0.004  -&gt;  indépartageables : [(30, 10), (50, 15), (50, 20), (100, 35)]
-Choix par la règle à un écart-type (le plus varié parmi eux) : (np.int64(30), np.int64(10))
+Choix, le plus varié parmi les indépartageables : (np.int64(30), np.int64(10))
 </pre>
 </div>
 </div>
@@ -13920,7 +13916,7 @@ Choix par la règle à un écart-type (le plus varié parmi eux) : (np.int64(30)
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <p>Avec une marge d'un écart-type (0,004), quatre réglages sont indépartageables de (50, 15), et le plus varié est <strong>(30, 10)</strong> :
-même NDCG à 0,001 près, 289 films différents au lieu de 219. Avec une marge fixe plus large, la règle glisserait vers (25, 8) à
+même NDCG à 0,001 près, 289 films différents au lieu de 219. Avec une marge fixe plus large, le choix glisserait vers (25, 8) à
 0,005 ou (20, 7) à 0,010, mais là on paie de la qualité pour de la variété, ce qui n'est plus une règle automatique mais un choix
 produit. C'est ce réglage, (30, 10), qu'on retient pour toute la suite.</p>
 </div>
@@ -14332,7 +14328,7 @@ voisins faibles retire surtout des voisins à ceux qui en ont peu. On garde les 
 <p><strong>Sur le test.</strong> (30, 10) obtient un NDCG de 0,201 contre 0,191 pour (50, 15), avec 337 films différents contre 249 et des films un
 peu moins populaires (151 avis en médiane contre 159) ; la RMSE est un peu moins bonne (1,011 contre 0,999). Les bons films trouvés
 sont eux aussi plus variés (196 films distincts contre 167, pour autant de bons films) : la variété en plus n'est pas du remplissage.
-Le choix reste fait en validation, par la règle à un écart-type ; le test ne sert qu'à vérifier, une seule fois, qu'il ne coûte
+Le choix reste fait en validation, avec la marge d'un écart-type ; le test ne sert qu'à vérifier, une seule fois, qu'il ne coûte
 rien en qualité. (25, 8) et (20, 7) confirment le sens de la crête (plus de films, moins populaires) mais restent derrière en
 validation sur 5 parts sur 5 : on s'arrête à (30, 10).</p>
 </div>

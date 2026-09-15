@@ -197,7 +197,7 @@ class RecoItemBased:
     n_favoris  : films préférés de l'utilisateur d'où partent les recommandations.
     min_avis   : un film doit avoir au moins min_avis avis en train pour avoir une similarité (sinon trop bruitée).
     classement : "note", par note prédite (cours) ; "somme", par somme des similarités x notes des favoris
-                 (règle usuelle du top N item-based : un film relié à dix favoris passe devant un film relié à un seul).
+                 (un film relié à dix favoris passe devant un film relié à un seul).
     """
 
     def __init__(self, k=10, n_favoris=10, min_avis=5, classement="note"):
@@ -830,6 +830,7 @@ section("Exercice 3 – Évaluation")
 
 # --- 1) Précision, rappel et NDCG top k ---
 section("Exercice 3, 1) Précision, rappel et NDCG top k")
+print("Question de cours : la réponse rédigée est dans le notebook. Les métriques sont implémentées juste après.")
 
 
 # --- 2) Implémentation des métriques ---
@@ -1012,8 +1013,28 @@ resume = par_reglage.mean(numeric_only=True).drop(columns="part")
 resume["NDCG écart-type"] = par_reglage["NDCG@10"].std()
 montrer(resume.loc[[(30, 10), (50, 15)] + CRETE].round(3))
 
+# Quatre réglages de plus à petit k, pour voir où commence le plateau (même validation croisée)
+COMPLEMENT = [(20, 7), (20, 8), (25, 8), (25, 10)]
+FICHIER_COMPLEMENT = Path("resultats/v2_grille_complement_cv.csv")
+if FICHIER_COMPLEMENT.exists():
+    complement = pd.read_csv(FICHIER_COMPLEMENT)
+else:
+    parts = parts_validation_croisee(train, N_PARTS, SEUIL_PERTINENT, RANDOM_STATE)
+    complement = pd.DataFrame(
+        [
+            {
+                "k": k,
+                "min_voisins": m,
+                "part": i,
+                **evaluer_modele(RecoUserBased(k=k, min_voisins=m).fit(train_fit), valid, SEUIL_PERTINENT, TOP_K),
+            }
+            for k, m in COMPLEMENT
+            for i, (train_fit, valid) in enumerate(parts)
+        ]
+    )
+    complement.to_csv(FICHIER_COMPLEMENT, index=False)
+
 # Le compromis qualité / variété : un point par réglage, l'étoile est le réglage retenu
-complement = pd.read_csv("resultats/v2_grille_complement_cv.csv")
 resume = (
     pd.concat([grille, crete, complement]).groupby(["k", "min_voisins"]).mean(numeric_only=True).drop(columns="part")
 )
@@ -1048,8 +1069,7 @@ ax.grid(alpha=0.25)
 plt.tight_layout()
 figure("ex4_q1_qualite_vs_variete")
 
-# Réglage retenu : règle à un écart-type, second critère = films distincts (voir la section Compléments)
-complement = pd.read_csv("resultats/v2_grille_complement_cv.csv")
+# Réglage retenu : indépartageables à un écart-type du meilleur NDCG, second critère = films distincts
 par = (
     pd.concat([grille, crete, complement])
     .groupby(["k", "min_voisins"])
@@ -1093,27 +1113,7 @@ montrer(
 # --- Compléments : d'autres réglages, et un seuil de similarité ---
 section("Exercice 4, Compléments : d'autres réglages, et un seuil de similarité")
 
-# Quatre réglages de plus sur la crête, à petit k
-COMPLEMENT = [(20, 7), (20, 8), (25, 8), (25, 10)]
-FICHIER_COMPLEMENT = Path("resultats/v2_grille_complement_cv.csv")
-if FICHIER_COMPLEMENT.exists():
-    complement = pd.read_csv(FICHIER_COMPLEMENT)
-else:
-    parts = parts_validation_croisee(train, N_PARTS, SEUIL_PERTINENT, RANDOM_STATE)
-    complement = pd.DataFrame(
-        [
-            {
-                "k": k,
-                "min_voisins": m,
-                "part": i,
-                **evaluer_modele(RecoUserBased(k=k, min_voisins=m).fit(train_fit), valid, SEUIL_PERTINENT, TOP_K),
-            }
-            for k, m in COMPLEMENT
-            for i, (train_fit, valid) in enumerate(parts)
-        ]
-    )
-    complement.to_csv(FICHIER_COMPLEMENT, index=False)
-
+# Les quatre réglages à petit k (calculés à la question 1), face à leurs voisins de la grille
 par_reglage = pd.concat([grille, crete, complement]).groupby(["k", "min_voisins"])
 resume = par_reglage.mean(numeric_only=True).drop(columns="part")
 resume["NDCG écart-type"] = par_reglage["NDCG@10"].std()
@@ -1142,7 +1142,7 @@ for k, m in [(30, 10), (25, 8), (20, 7)]:
     )
 montrer(pd.DataFrame(lignes).set_index("réglage").round(3))
 
-# Règle à un écart-type : indépartageables du meilleur, puis le plus varié
+# Marge d'un écart-type : indépartageables du meilleur, puis le plus varié
 resume_tout = (
     pd.concat([grille, crete, complement])
     .groupby(["k", "min_voisins"])
@@ -1164,7 +1164,7 @@ candidats = resume_tout[resume_tout["NDCG@10"] >= resume_tout.loc[best, "NDCG@10
 print(
     f"Meilleur NDCG : {best}, {resume_tout.loc[best, 'NDCG@10']:.3f} ± {marge:.3f}  ->  indépartageables : {list(candidats.index)}"
 )
-print(f"Choix par la règle à un écart-type (le plus varié parmi eux) : {candidats.index[0]}")
+print(f"Choix, le plus varié parmi les indépartageables : {candidats.index[0]}")
 montrer(candidats.round(3))
 
 
@@ -1240,11 +1240,11 @@ for k, m in VERIF:
         u: list(RecoUserBased(k=k, min_voisins=m).fit(train).recommander(u, TOP_K).index)
         for u in test["userId"].unique()
     }
-    hits = [f for u, l in listes_km.items() for f in l if f in pert.get(u, set())]
+    hits = [f for u, liste_u in listes_km.items() for f in liste_u if f in pert.get(u, set())]
     lignes.append(
         {
             "réglage": f"({k}, {m})",
-            "films distincts proposés": len({f for l in listes_km.values() for f in l}),
+            "films distincts proposés": len({f for liste_u in listes_km.values() for f in liste_u}),
             "bons films trouvés": len(hits),
             "bons films distincts": len(set(hits)),
             "popularité médiane des bons films": np.median([n_avis_train[f] for f in hits]),
@@ -1398,7 +1398,7 @@ utilisateurs = sorted(test["userId"].unique())
 listes_ub = {u: list(reco_retenu.recommander(u, TOP_K).index) for u in utilisateurs}
 listes_ib = {u: list(reco_item.recommander(u, TOP_K).index) for u in utilisateurs}
 systemes = {"user-based retenu": listes_ub, "item-based (bonus)": listes_ib, "populaire": listes_pop}
-print({nom: f"{sum(len(l) for l in listes.values())} films proposés" for nom, listes in systemes.items()})
+print({nom: f"{sum(len(liste_u) for liste_u in listes.values())} films proposés" for nom, listes in systemes.items()})
 
 
 # --- 1) Favorise-t-il les films populaires ? ---
@@ -1409,7 +1409,7 @@ top50 = set(populaires[:50])
 
 
 def popularite(listes):
-    films = [f for l in listes.values() for f in l]
+    films = [f for liste_u in listes.values() for f in liste_u]
     return pd.Series(
         {
             "popularité médiane (avis en train)": np.median([n_avis.get(f, 0) for f in films]),
@@ -1423,7 +1423,7 @@ print(
     f"Catalogue : {len(n_avis)} films, popularité médiane {n_avis.median():.0f} avis, "
     f"{(n_avis < 20).mean():.0%} des films ont moins de 20 avis"
 )
-montrer(pd.DataFrame({nom: popularite(l) for nom, l in systemes.items()}).round(3))
+montrer(pd.DataFrame({nom: popularite(listes) for nom, listes in systemes.items()}).round(3))
 
 # Répartition par tranche de popularité : le catalogue contre les films proposés
 tranches, noms = [0, 2, 9, 49, 199, 10**9], ["1 à 2 avis", "3 à 9", "10 à 49", "50 à 199", "200 et plus"]
@@ -1437,7 +1437,8 @@ repartition = pd.DataFrame(
     {
         "catalogue": par_tranche(n_avis.to_numpy()),
         **{
-            nom: par_tranche([n_avis.get(f, 0) for l in listes.values() for f in l]) for nom, listes in systemes.items()
+            nom: par_tranche([n_avis.get(f, 0) for liste_u in listes.values() for f in liste_u])
+            for nom, listes in systemes.items()
         },
     }
 )
@@ -1473,14 +1474,14 @@ preferes = {u: list(train[train["userId"] == u].nlargest(TOP_K, "rating")["movie
 
 
 def diversite_moyenne(listes):
-    d = np.array([diversite(l) for l in listes.values() if l])
+    d = np.array([diversite(liste_u) for liste_u in listes.values() if liste_u])
     return pd.Series({"genres distincts par liste": d[:, 0].mean(), "paires sans genre commun": np.nanmean(d[:, 1])})
 
 
 montrer(
     pd.DataFrame(
         {
-            **{nom: diversite_moyenne(l) for nom, l in systemes.items()},
+            **{nom: diversite_moyenne(listes) for nom, listes in systemes.items()},
             "films préférés de l'utilisateur": diversite_moyenne(preferes),
         }
     ).round(2)
@@ -1507,7 +1508,9 @@ montrer(avec_genres(listes_ub[u]))
 
 # La même chose sur les 671 utilisateurs : une boîte par type de liste (moitié centrale, trait = médiane)
 groupes = {**systemes, "films préférés de l'utilisateur": preferes}
-valeurs = {nom: np.array([diversite(l) for l in listes.values() if l]) for nom, listes in groupes.items()}
+valeurs = {
+    nom: np.array([diversite(liste_u) for liste_u in listes.values() if liste_u]) for nom, listes in groupes.items()
+}
 fig, axes = plt.subplots(1, 2, figsize=(11, 4))
 for ax, j, titre in (
     (axes[0], 0, "Genres différents couverts par un top 10"),
@@ -1530,7 +1533,7 @@ section("Exercice 5, 3) Les recommandations au global sont-elles diverses ?")
 
 # Couverture du catalogue et concentration des recommandations
 def concentration(listes):
-    comptes = pd.Series([f for l in listes.values() for f in l]).value_counts()
+    comptes = pd.Series([f for liste_u in listes.values() for f in liste_u]).value_counts()
     cumul = comptes.cumsum() / comptes.sum()
     return pd.Series(
         {
@@ -1542,10 +1545,10 @@ def concentration(listes):
     )
 
 
-montrer(pd.DataFrame({nom: concentration(l) for nom, l in systemes.items()}).round(3))
+montrer(pd.DataFrame({nom: concentration(listes) for nom, listes in systemes.items()}).round(3))
 
 # Les films les plus souvent proposés par le user-based, et à combien d'utilisateurs
-plus_proposes = pd.Series([f for l in listes_ub.values() for f in l]).value_counts().head(5)
+plus_proposes = pd.Series([f for liste_u in listes_ub.values() for f in liste_u]).value_counts().head(5)
 montrer(
     avec_titres(plus_proposes.to_frame("utilisateurs")).assign(
         avis_en_train=lambda d: n_avis.reindex(d.index.get_level_values(0)).to_numpy()
@@ -1553,8 +1556,8 @@ montrer(
 )
 
 # Les 15 films les plus proposés, et la part des utilisateurs qui les reçoivent ; puis la courbe de concentration
-comptes_ub = pd.Series([f for l in listes_ub.values() for f in l]).value_counts()
-comptes_ib = pd.Series([f for l in listes_ib.values() for f in l]).value_counts()
+comptes_ub = pd.Series([f for liste_u in listes_ub.values() for f in liste_u]).value_counts()
+comptes_ib = pd.Series([f for liste_u in listes_ib.values() for f in liste_u]).value_counts()
 top15 = comptes_ub.head(15)
 fig, axes = plt.subplots(1, 2, figsize=(14, 5), gridspec_kw={"width_ratios": [1.3, 1]})
 y = np.arange(15)[::-1]
@@ -1574,8 +1577,8 @@ axes[0].set(
 )
 axes[0].legend(loc="lower right")
 axes[0].tick_params(axis="y", labelsize=8)
-for (nom, l), c in zip(systemes.items(), ["#2F5BEA", "#D97A0B", "#444"]):
-    comptes = pd.Series([f for films in l.values() for f in films]).value_counts()
+for (nom, listes), c in zip(systemes.items(), ["#2F5BEA", "#D97A0B", "#444"]):
+    comptes = pd.Series([f for films in listes.values() for f in films]).value_counts()
     cumul = comptes.cumsum() / comptes.sum()
     axes[1].plot(range(1, len(cumul) + 1), cumul * 100, color=c, lw=2, label=f"{nom} : {len(comptes)} films")
 axes[1].axhline(50, color="#999", ls=":")
@@ -1601,7 +1604,7 @@ genres = pd.DataFrame(
     {
         "catalogue": part_genres(train["movieId"].unique()),
         **{
-            nom: part_genres([f for l in listes.values() for f in l])
+            nom: part_genres([f for liste_u in listes.values() for f in liste_u])
             for nom, listes in systemes.items()
             if nom != "populaire"
         },
@@ -1623,9 +1626,9 @@ section("Exercice 5, 4) Les recommandations sont-elles réellement personnalisé
 
 # Films en commun entre deux listes (toutes les paires d'utilisateurs), et avec le top des ventes
 def recouvrement(listes):
-    ens = [set(l) for l in listes.values()]
+    ens = [set(liste_u) for liste_u in listes.values()]
     paires = [len(a & b) for i, a in enumerate(ens) for b in ens[i + 1 :]]
-    avec_pop = [len(set(l) & set(listes_pop[u])) for u, l in listes.items()]
+    avec_pop = [len(set(liste_u) & set(listes_pop[u])) for u, liste_u in listes.items()]
     return pd.Series(
         {
             "films en commun entre deux utilisateurs (moyenne)": np.mean(paires),
@@ -1635,7 +1638,7 @@ def recouvrement(listes):
     )
 
 
-montrer(pd.DataFrame({nom: recouvrement(l) for nom, l in systemes.items()}).round(2))
+montrer(pd.DataFrame({nom: recouvrement(listes) for nom, listes in systemes.items()}).round(2))
 
 # Deux utilisateurs aux goûts opposés : celui qui note le plus haut et celui qui note le plus bas les films d'action
 action = genres_film[genres_film.map(lambda g: isinstance(g, set) and "Action" in g)].index
@@ -1659,8 +1662,8 @@ montrer(
 # Pour chaque nombre de films en commun entre deux utilisateurs, la part des paires
 fig, ax = plt.subplots(figsize=(9, 4))
 w = 0.27
-for i, ((nom, l), c) in enumerate(zip(systemes.items(), ["#2F5BEA", "#D97A0B", "#444"])):
-    ens = [set(x) for x in l.values()]
+for i, ((nom, listes), c) in enumerate(zip(systemes.items(), ["#2F5BEA", "#D97A0B", "#444"])):
+    ens = [set(x) for x in listes.values()]
     communs = np.array([len(a & b) for j, a in enumerate(ens) for b in ens[j + 1 :]])
     ax.bar(
         np.arange(11) + (i - 1) * w,
@@ -1683,3 +1686,4 @@ figure("ex5_q4_personnalisation")
 
 # --- 5) Comment améliorer le système en production ? ---
 section("Exercice 5, 5) Comment améliorer le système en production ?")
+print("Question de réflexion : la réponse rédigée est dans le notebook et le rapport (pas de code).")

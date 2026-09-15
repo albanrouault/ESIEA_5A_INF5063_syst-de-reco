@@ -8,7 +8,7 @@ Rambaud, Saget, Rouault – INF5063 (ESIEA 5A).
 - `dataset/` : les trois CSV utilisés (The Movies Dataset, Kaggle).
 - `resultats/` : les mesures de la validation croisée déjà calculées. Si le dossier manque, le script les recalcule (environ 25 minutes de plus).
 
-Lancer le script (Python 3.12, pandas, numpy, matplotlib) :
+Lancer le script depuis ce dossier (testé avec Python 3.12, pandas 3.0, numpy 2.5, matplotlib 3.11 ; pandas 2.2 minimum) :
 
     python tp_reco.py
 
