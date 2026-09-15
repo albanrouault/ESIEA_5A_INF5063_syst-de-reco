@@ -21,3 +21,7 @@ __pycache__/
 
 # Métadonnées Windows (fichiers copiés depuis un navigateur)
 *:Zone.Identifier
+
+# Copie du dataset et figures générées dans le dossier de rendu
+rendu/dataset/
+rendu/figures/
