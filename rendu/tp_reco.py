@@ -1686,4 +1686,72 @@ figure("ex5_q4_personnalisation")
 
 # --- 5) Comment améliorer le système en production ? ---
 section("Exercice 5, 5) Comment améliorer le système en production ?")
-print("Question de réflexion : la réponse rédigée est dans le notebook et le rapport (pas de code).")
+print("Question de réflexion : la réponse rédigée est dans le rapport. Ici, seulement la maquette qui l'illustre.")
+
+# La page d'accueil qu'on construirait : une rangée par idée, ce qui la remplit, et le chiffre du TP qui la justifie
+from matplotlib.patches import FancyBboxPatch
+
+RANGEES = [
+    (
+        "Parce que vous avez aimé Le Parrain",
+        "item-based, classement par somme",
+        "notre meilleur système : NDCG 0,249, 410 films différents, explicable",
+        "#FBE5C8",
+    ),
+    (
+        "Les gens qui ont vos goûts ont aimé",
+        "user-based du TP (30, 10)",
+        "NDCG 0,201, listes différentes de l'item-based : pas de doublon",
+        "#D6DEFF",
+    ),
+    (
+        "À découvrir",
+        "films moins vus aimés par les voisins + un peu d'aléatoire",
+        "contre le biais de popularité : 96 % du catalogue jamais proposé aujourd'hui",
+        "#F9DDE8",
+    ),
+    (
+        "Tendances",
+        "les films les plus notés, sans algorithme",
+        "fait déjà 0,147 de NDCG tout seul, marche pour tout le monde",
+        "#EAEEF3",
+    ),
+    (
+        "À revoir",
+        "l'historique de l'utilisateur, sans algorithme",
+        "ne coûte rien, et rappelle les goûts d'avant",
+        "#EAEEF3",
+    ),
+    (
+        "Nouvel utilisateur : d'après vos choix",
+        "filtrage par contenu (genres, acteurs, résumé)",
+        "démarrage à froid : le collaboratif ne peut rien sans avis",
+        "#D5F0E3",
+    ),
+]
+fig, ax = plt.subplots(figsize=(13, 6.6))
+ax.set(xlim=(0, 100), ylim=(0, 100))
+ax.axis("off")
+ax.set_title(
+    "Maquette de la page d'accueil : une rangée par idée, et ce qui la remplit", fontsize=13, weight="bold", pad=6
+)
+for i, (titre, source, justification, couleur) in enumerate(RANGEES):
+    y = 97 - i * 15.2  # haut de la rangée
+    ax.add_patch(FancyBboxPatch((1, y - 11), 98, 11, boxstyle="round,pad=0.4", fc=couleur, ec="#333", lw=1))
+    ax.text(3, y - 2.6, titre, fontsize=11.5, weight="bold", va="center")
+    for j in range(6):  # les vignettes de films
+        ax.add_patch(
+            FancyBboxPatch((3 + j * 4.9, y - 10), 3.9, 5, boxstyle="round,pad=0.15", fc="white", ec="#777", lw=0.8)
+        )
+    ax.text(36, y - 3.2, source, fontsize=10, va="center", color="#222")
+    ax.text(36, y - 8, justification, fontsize=9.3, va="center", color="#555")
+ax.text(
+    3,
+    2.5,
+    "À gauche ce qui remplit la rangée, en dessous le chiffre du TP qui justifie sa place. "
+    "Les rangées seraient mesurées en test A/B, avec les vrais usages.",
+    fontsize=9,
+    color="#333",
+)
+plt.tight_layout()
+figure("ex5_q5_maquette_page_accueil")
